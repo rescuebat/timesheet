@@ -88,6 +88,8 @@ const StopwatchManager: React.FC<StopwatchManagerProps> = ({
     }
     setIsRunning(false);
     setStartTime(null);
+    // Reset timer when paused
+    resetTimer();
   };
 
   const handleStop = () => {

@@ -15,20 +15,45 @@ interface StopwatchPanelProps {
   onPauseProject: (queuedProject: QueuedProject) => void;
   resumedProject?: QueuedProject;
   onResumedProjectHandled: () => void;
+  currentFocus: string;
 }
 
-const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
+const StopwatchPanel = React.forwardRef<any, StopwatchPanelProps>(({
   selectedProject,
   selectedSubproject,
   onLogTime,
   onPauseProject,
   resumedProject,
-  onResumedProjectHandled
-}) => {
+  onResumedProjectHandled,
+  currentFocus
+}, ref) => {
   const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [pendingLogData, setPendingLogData] = useState<{duration: number, startTime: Date, endTime: Date} | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<any>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    handleStartStop: () => {
+      if (actionsRef.current) {
+        if (actionsRef.current.isRunning) {
+          actionsRef.current.handleStop();
+        } else {
+          actionsRef.current.handleStart();
+        }
+      }
+    },
+    handlePause: () => {
+      if (actionsRef.current) {
+        actionsRef.current.handlePause();
+      }
+    },
+    handleLogTime: () => {
+      if (pendingLogData) {
+        handleConfirmLog();
+      }
+    }
+  }));
 
   const handleConfirmLog = () => {
     if (pendingLogData) {
@@ -50,26 +75,18 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
       ref={containerRef}
       className="flex flex-col items-center justify-center w-full h-full relative overflow-hidden min-h-[500px]"
     >
-      {/* Project Info */}
-      <div className="mb-8 animate-fade-in">
-        <ProjectInfo 
-          selectedProject={selectedProject}
-          selectedSubproject={selectedSubproject}
-        />
-      </div>
-      
       <StopwatchManager
         resumedProject={resumedProject}
         onResumedProjectHandled={onResumedProjectHandled}
       >
         {(state, actions) => {
+          actionsRef.current = { ...actions, isRunning: state.isRunning };
+          
           const canStart = selectedProject && selectedSubproject && !state.isRunning;
           const canPauseOrStop = state.isRunning && state.startTime;
 
           const handlePause = () => {
             if (!selectedProject || !selectedSubproject || !state.startTime) return;
-            
-            actions.handlePause();
             
             const queuedProject: QueuedProject = {
               id: Date.now().toString(),
@@ -77,12 +94,12 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
               subprojectId: selectedSubproject.id,
               projectName: selectedProject.name,
               subprojectName: selectedSubproject.name,
-              elapsedTime: state.elapsedTime,
+              elapsedTime: state.displayTime,
               startTime: state.startTime
             };
             
             onPauseProject(queuedProject);
-            storageService.clearStopwatchState();
+            actions.handlePause();
           };
 
           const handleStop = () => {
@@ -144,6 +161,8 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
       </StopwatchManager>
     </div>
   );
-};
+});
+
+StopwatchPanel.displayName = 'StopwatchPanel';
 
 export default StopwatchPanel;

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ProjectSelector from './ProjectSelector';
 import StopwatchPanel from './StopwatchPanel';
 import QueuedProjects, { QueuedProject } from './QueuedProjects';
+import CurrentSelection from './timesheet/CurrentSelection';
 
 export interface Project {
   id: string;
@@ -51,6 +52,7 @@ const TimeTracker = () => {
   });
   const [resumedProject, setResumedProject] = useState<QueuedProject | undefined>();
   const [currentFocus, setCurrentFocus] = useState<'project' | 'subproject' | 'timer'>('project');
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Reference to the stopwatch panel for keyboard actions
   const stopwatchRef = React.useRef<{ 
@@ -68,6 +70,15 @@ const TimeTracker = () => {
     confirmProjectSelection: () => void,
     confirmSubprojectSelection: () => void
   } | null>(null);
+
+  // Force real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setForceUpdate(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Update project times when time logs change
   useEffect(() => {
@@ -296,20 +307,18 @@ const TimeTracker = () => {
              backgroundSize: '24px 24px'
            }} />
       
-      <div className="relative z-10 max-w-7xl mx-auto px-8 py-12">
-        {/* Selected Project/Subproject Display - Moved to top left */}
-        {selectedProject && selectedSubproject && (
-          <div className="mb-8 p-6 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-500 ease-out bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-0">
-            <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Current Selection</div>
-            <div className="text-xl font-medium text-gray-900 dark:text-gray-100 tracking-tight">
-              {selectedProject.name} → {selectedSubproject.name}
-            </div>
-          </div>
-        )}
-
+      {/* Current Selection - Fixed at top when both project and subproject are selected */}
+      {selectedProject && selectedSubproject && (
+        <CurrentSelection 
+          selectedProject={selectedProject}
+          selectedSubproject={selectedSubproject}
+        />
+      )}
+      
+      <div className={`relative z-10 max-w-7xl mx-auto px-8 ${selectedProject && selectedSubproject ? 'pt-32 pb-12' : 'py-12'}`}>
         {/* Main Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-          {/* Project Selection Panel - Removed header */}
+          {/* Project Selection Panel */}
           <Card className="group relative overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-500 ease-out">
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 via-transparent to-gray-100/30 dark:from-gray-800/30 dark:via-transparent dark:to-gray-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -330,7 +339,7 @@ const TimeTracker = () => {
             </CardContent>
           </Card>
 
-          {/* Timer Panel - Removed header */}
+          {/* Timer Panel */}
           <Card className="group relative overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-500 ease-out">
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-indigo-50/20 dark:from-blue-900/20 dark:via-transparent dark:to-indigo-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
